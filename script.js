@@ -1,89 +1,157 @@
-form = document.getElementById('my-form');
-itemList = document.getElementById('items');
-const msg=document.querySelector('.msg');
+const form = document.getElementById('my-form');
+const itemList = document.getElementById('items');
+const msg = document.querySelector('.msg');
 
-form.addEventListener('submit',addItem);
+form.addEventListener('submit', addItem);
 
-function addItem(e){
-
+function addItem(e) {
     e.preventDefault();
-    var newItem = document.getElementById('ItemName');
-    var newDescription = document.getElementById('Description');
-    var newPrice = document.getElementById('Price');
-    var newQuantity = document.getElementById('Quantity');
 
-    if(newItem.value===''||newDescription.value===''||newPrice.value===''|| newQuantity.value===''){
+    const newItem = document.getElementById('ItemName');
+    const newDescription = document.getElementById('Description');
+    const newPrice = document.getElementById('Price');
+    const newQuantity = document.getElementById('Quantity');
+
+    if (newItem.value === '' || newDescription.value === '' || newPrice.value === '' || newQuantity.value === '') {
         msg.classList.add('error');
-        msg.innerHTML='Please enter all fields';
-        // remove error after 3 sec
-        setTimeout(()=>msg.remove(),3000);
-    }else{
-        var storedData = localStorage.getItem(newItem.value);
+        msg.textContent = 'Please enter all fields';
 
-        var newEntity={
-            ItemName:newItem.value,
-            Description:newDescription.value,
-            Price:newPrice.value,
-            Quantity:newQuantity.value
-        }
-        
-        axios.post("https://crudcrud.com/api/b70632cdb55540a787d6c265ed5145e3/addItems",newEntity)
+        setTimeout(() => {
+            msg.classList.remove('error');
+            msg.textContent = '';
+        }, 3000);
+    } else {
+        const newEntity = {
+            ItemName: newItem.value,
+            Description: newDescription.value,
+            Price: newPrice.value,
+            Quantity: newQuantity.value
+        };
+
+        axios.post("https://crudcrud.com/api/3310d6441888477a91278e09d5c38154/addItems", newEntity)
             .then(response => {
-                console.log(response);
-                showNewUserOnScreen(response.data)
+                const newItemData = response.data;
+                showNewUserOnScreen(newItemData);
+                clearFormFields();
             })
             .catch(err => {
-                console.log(err);
-            })
-        //clear fields
-        newItem.value='';
-        newDescription.value='';
-        newPrice.value='';
-        newQuantity.value='';
+                console.error(err);
+            });
     }
 }
 
-function showNewUserOnScreen(obj){
-    var li =document.createElement('li');
-    li.dataset.id = obj._id;
+function clearFormFields() {
+    document.getElementById('ItemName').value = '';
+    document.getElementById('Description').value = '';
+    document.getElementById('Price').value = '';
+    document.getElementById('Quantity').value = '';
+}
+
+function showNewUserOnScreen(item) {
+    const li = document.createElement('li');
+    li.dataset.id = item._id;
     li.className = "list-group-item";
 
-    li.appendChild(document.createTextNode("Item: "+obj.ItemName+"  "));
-    li.appendChild(document.createTextNode("Description:"+obj.Description+"    "));
-    li.appendChild(document.createTextNode("Price: "+obj.Price+"     "));
-    li.appendChild(document.createTextNode("Quantity:"+obj.Quantity));
-        
-    var buy1 = document.createElement('button');
-    buy1.classList = "btn btn-primary btn-sm float-right edit";
-    buy1.appendChild(document.createTextNode('Buy:1'));
+    const labelItemName = document.createElement('strong');
+    labelItemName.appendChild(document.createTextNode("Item: "));
+    li.appendChild(labelItemName);
+    li.appendChild(document.createTextNode(item.ItemName + "        "));
 
-    var buy2 = document.createElement('button');
-    buy2.classList = "btn btn-primary btn-sm float-right edit";
-    buy2.appendChild(document.createTextNode('Buy:2'));
+    const labelDescription = document.createElement('strong');
+    labelDescription.appendChild(document.createTextNode("Description: "));
+    li.appendChild(labelDescription);
+    li.appendChild(document.createTextNode(item.Description + "        "));
 
-    var buy3 = document.createElement('button');
-    buy3.classList = "btn btn-primary btn-sm float-right edit";
-    buy3.appendChild(document.createTextNode('Buy:3'));
+    const labelPrice = document.createElement('strong');
+    labelPrice.appendChild(document.createTextNode("Price: "));
+    li.appendChild(labelPrice);
+    li.appendChild(document.createTextNode(item.Price + "      "));
 
-    buy1.setAttribute('onclick',`Buy1Item('${obj.ItemName}','${obj.Description}','${obj.Price}','${obj.Quantity}''${obj._id}')`);
-    buy2.setAttribute('onclick',`Buy2Item('${obj.ItemName}','${obj.Description}','${obj.Price}','${obj.Quantity}''${obj._id}')`); 
-    buy3.setAttribute('onclick',`Buy3Item('${obj.ItemName}','${obj.Description}','${obj.Price}','${obj.Quantity}''${obj._id}')`); 
+    const labelQuantity = document.createElement('strong');
+    labelQuantity.appendChild(document.createTextNode("Quantity: "));
+    li.appendChild(labelQuantity);
 
-    li.appendChild(buy1);
-    li.appendChild(buy2);
-    li.appendChild(buy3);
+    const quantitySpan = document.createElement('span');
+    quantitySpan.className = 'quantity';
+    quantitySpan.textContent = item.Quantity;
+    li.appendChild(quantitySpan);
+
+    const buyContainer = document.createElement('div');
+    buyContainer.className = "buy-buttons"; // Apply CSS class for styling
+
+    const buy1 = createBuyButton(item, 1);
+    const buy2 = createBuyButton(item, 2);
+    const buy3 = createBuyButton(item, 3);
+
+    buyContainer.appendChild(buy1);
+    buyContainer.appendChild(buy2);
+    buyContainer.appendChild(buy3);
+
+    li.appendChild(buyContainer);
     itemList.appendChild(li);
 }
-window.addEventListener("DOMContentLoaded",() => {
-    axios.get("https://crudcrud.com/api/b70632cdb55540a787d6c265ed5145e3/addItems")
-    .then(res=>{
-        const data = res.data;
-        data.forEach(item =>{
-            showNewUserOnScreen(item);
+
+function createBuyButton(item, quantityToBuy) {
+    const { ItemName, Description, Price, Quantity, _id } = item;
+    const buyButton = document.createElement('button');
+    buyButton.classList = "btn btn-primary btn-sm edit";
+    buyButton.textContent = `Buy: ${quantityToBuy}`;
+
+    buyButton.addEventListener('click', () => buyItems(item, quantityToBuy));
+
+    return buyButton;
+}
+
+function buyItems(item, quantityToBuy) {
+    const updatedQuantity = parseInt(item.Quantity) - quantityToBuy;
+
+    if (updatedQuantity < 0) {
+        alert('Not enough quantity available.');
+        return;
+    }
+
+    updateQuantityOnServer(item.ItemName, item.Description, item.Price, item.Quantity, item._id, updatedQuantity)
+        .then(() => {
+            updateDisplayedQuantity(item, updatedQuantity);
+            item.Quantity = updatedQuantity; // Update the local item quantity
+        })
+        .catch(error => {
+            console.error('Error updating quantity:', error);
         });
-        
-    })
-    .catch(err=>{
-        console.log(err);
-    })
-})
+}
+
+async function updateQuantityOnServer(uItemName, uDescription, uPrice, uQuantity, _id, newQuantity) {
+    const url = `https://crudcrud.com/api/3310d6441888477a91278e09d5c38154/addItems/${_id}`;
+    const data = { ItemName: uItemName, Description: uDescription, Price: uPrice, Quantity: newQuantity };
+
+    try {
+        const response = await axios.put(url, data);
+        console.log('Quantity updated on the server:', response.data);
+    } catch (error) {
+        throw error;
+    }
+}
+
+function updateDisplayedQuantity(item, updatedItem) {
+    const listItem = document.querySelector(`li[data-id="${item._id}"]`);
+    if (listItem) {
+        const quantitySpan = listItem.querySelector('.quantity');
+        if (quantitySpan) {
+            quantitySpan.textContent = updatedItem;
+        }
+    }
+}
+
+// Fetch and display initial data on page load
+window.addEventListener("DOMContentLoaded", () => {
+    axios.get("https://crudcrud.com/api/3310d6441888477a91278e09d5c38154/addItems")
+        .then(res => {
+            const data = res.data;
+            data.forEach(item => {
+                showNewUserOnScreen(item);
+            });
+        })
+        .catch(err => {
+            console.error(err);
+        });
+});
